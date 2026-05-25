@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>क्रमबद्ध फाइल मर्जर (Ordered Merge)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+            background: #eef2f7;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        header {
+            background: #0f2b3d;
+            color: white;
+            padding: 24px 30px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        header p {
+            margin: 8px 0 0;
+            opacity: 0.85;
+        }
+        .flex-main {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            padding: 28px;
+        }
+        .upload-area {
+            flex: 1.2;
+            min-width: 320px;
+            background: #f9fafc;
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid #e2edf2;
+        }
+        .output-area {
+            flex: 2.5;
+            min-width: 500px;
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid #dce5ec;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+        .file-list {
+            margin: 15px 0;
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 12px;
+            border: 1px solid #cfdfed;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f6fd;
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            gap: 8px;
+        }
+        .file-order-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .order-btn {
+            background: #cbdde9;
+            border: none;
+            border-radius: 30px;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        .order-btn:hover {
+            background: #b0c4d6;
+        }
+        .remove-file {
+            background: #e2b3a8;
+            border: none;
+            border-radius: 30px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #3e2a1f;
+        }
+        .remove-file:hover {
+            background: #d19684;
+        }
+        button {
+            background: #1e4a6e;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 6px 5px 0 0;
+            font-size: 0.9rem;
+        }
+        button:hover {
+            background: #0e3752;
+            transform: scale(1.01);
+        }
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .copy-btn {
+            background: #2c6e4f;
+        }
+        .copy-btn:hover {
+            background: #1e5a3e;
+        }
+        .download-btn {
+            background: #9b4d2c;
+        }
+        .download-btn:hover {
+            background: #7c3a1f;
+        }
+        pre {
+            background: #1e2a36;
+            color: #eef4ff;
+            padding: 18px;
+            border-radius: 20px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 580px;
+            overflow-y: auto;
+        }
+        .status {
+            background: #e0f2fe;
+            padding: 10px 15px;
+            border-radius: 40px;
+            margin-bottom: 15px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .add-more {
+            background: #eef2ff;
+            border: 1px dashed #1e4a6e;
+            border-radius: 60px;
+            padding: 10px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 60px;
+            border: 1px solid #cbdde9;
+            background: white;
+        }
+        .small-note {
+            font-size: 0.75rem;
+            color: #2c5a74;
+            margin-top: 12px;
+        }
+        .file-name {
+            flex: 1;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>📚 क्रमबद्ध फाइल मर्जर (Ordered Merge)</h1>
+        <p>जिस क्रम में फाइलें डालोगे, उसी क्रम में मर्ज होंगी — चाहे अंदर के प्रश्न नंबर कुछ भी हों।</p>
+    </header>
+    <div class="flex-main">
+        <div class="upload-area">
+            <div style="font-weight: bold; margin-bottom: 12px;">📂 फाइलें जोड़ें (क्रमानुसार)</div>
+            <input type="file" id="fileUploadInput" accept=".txt" multiple>
+            <div id="fileListContainer" class="file-list">
+                <div style="color: #6c86a3; text-align: center;">कोई फाइल नहीं।</div>
+            </div>
+            <div class="add-more">
+                ⚡ टिप: एक साथ कई फाइलें चुनने पर वे जिस क्रम में चुनोगे (Ctrl+Click), उसी क्रम में जुड़ेंगी।<br>
+                बाद में ऊपर/नीचे बटन से क्रम बदल सकते हो।
+            </div>
+            <div class="action-buttons" style="margin-top: 20px;">
+                <button id="mergeBtn">🔄 मर्ज करें (मेरे क्रम के अनुसार)</button>
+                <button id="clearFilesBtn">🗑️ सभी फाइलें हटाएँ</button>
+            </div>
+        </div>
+        <div class="output-area">
+            <div id="statusMsg" class="status">✅ तैयार। फाइलें चुनें और "मर्ज करें" दबाएँ।</div>
+            <pre id="outputPreview">// मर्ज किया गया आउटपुट यहाँ दिखेगा...</pre>
+            <div class="action-buttons">
+                <button id="copyOutputBtn" class="copy-btn">📋 कॉपी करें</button>
+                <button id="downloadOutputBtn" class="download-btn">💾 डाउनलोड करें (merged_output.txt)</button>
+            </div>
+            <div class="small-note">
+                🔍 <strong>महत्वपूर्ण:</strong> फाइलों को जिस क्रम में रखा गया है (ऊपर से नीचे), उसी क्रम में प्रश्न मर्ज होंगे।<br>
+                हर फाइल के अंदर के प्रश्न अपने मूल क्रम में ही रहेंगे (नंबर के हिसाब से नहीं बदले जाएँगे)।<br>
+                आउटपुट बिल्कुल document (10).txt के स्टाइल में होगा।
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- फाइलों की लिस्ट (order matters) ----------
+    let selectedFiles = []; // Array of { file, name }
+
+    const fileInput = document.getElementById('fileUploadInput');
+    const fileListDiv = document.getElementById('fileListContainer');
+    const mergeBtn = document.getElementById('mergeBtn');
+    const clearBtn = document.getElementById('clearFilesBtn');
+    const copyBtn = document.getElementById('copyOutputBtn');
+    const downloadBtn = document.getElementById('downloadOutputBtn');
+    const outputPre = document.getElementById('outputPreview');
+    const statusDiv = document.getElementById('statusMsg');
+
+    // फाइल लिस्ट रेंडर करना (order के साथ up/down)
+    function renderFileList() {
+        if (selectedFiles.length === 0) {
+            fileListDiv.innerHTML = '<div style="color: #6c86a3; text-align: center;">📭 कोई फाइल नहीं चुनी गई।</div>';
+            return;
+        }
+        let html = '';
+        selectedFiles.forEach((item, idx) => {
+            html += `
+                <div class="file-item" data-index="${idx}">
+                    <div class="file-order-controls">
+                        <button class="order-btn move-up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''}>⬆️</button>
+                        <button class="order-btn move-down" data-idx="${idx}" ${idx === selectedFiles.length-1 ? 'disabled' : ''}>⬇️</button>
+                    </div>
+                    <div class="file-name">📄 ${escapeHtml(item.name)} (${(item.file.size/1024).toFixed(1)} KB)</div>
+                    <button class="remove-file" data-idx="${idx}">हटाएँ</button>
+                </div>
+            `;
+        });
+        fileListDiv.innerHTML = html;
+
+        // इवेंट लगाएँ
+        document.querySelectorAll('.move-up').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let idx = parseInt(btn.getAttribute('data-idx'));
+                if (idx > 0) {
+                    [selectedFiles[idx-1], selectedFiles[idx]] = [selectedFiles[idx], selectedFiles[idx-1]];
+                    renderFileList();
+                    statusDiv.innerHTML = "🔄 क्रम बदला गया। मर्ज करें पर क्लिक करें।";
+                    outputPre.textContent = "// पुराना आउटपुट रीसेट।";
+                }
+            });
+        });
+        document.querySelectorAll('.move-down').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let idx = parseInt(btn.getAttribute('data-idx'));
+                if (idx < selectedFiles.length-1) {
+                    [selectedFiles[idx+1], selectedFiles[idx]] = [selectedFiles[idx], selectedFiles[idx+1]];
+                    renderFileList();
+                    statusDiv.innerHTML = "🔄 क्रम बदला गया। मर्ज करें पर क्लिक करें।";
+                    outputPre.textContent = "// पुराना आउटपुट रीसेट।";
+                }
+            });
+        });
+        document.querySelectorAll('.remove-file').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let idx = parseInt(btn.getAttribute('data-idx'));
+                if (!isNaN(idx)) {
+                    selectedFiles.splice(idx, 1);
+                    renderFileList();
+                    statusDiv.innerHTML = "🗑️ फाइल हटाई गई। मर्ज करें।";
+                    outputPre.textContent = "// पुराना आउटपुट रीसेट।";
+                }
+            });
+        });
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // फाइलें जोड़ना (multiple)
+    fileInput.addEventListener('change', (event) => {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
+        for (let f of files) {
+            // डुप्लीकेट न होने दें (वैकल्पिक)
+            if (!selectedFiles.some(ex => ex.name === f.name && ex.file.size === f.size)) {
+                selectedFiles.push({ file: f, name: f.name });
+            } else {
+                statusDiv.innerHTML = `⚠️ फाइल "${f.name}" पहले से मौजूद है, अनदेखा किया।`;
+            }
+        }
+        renderFileList();
+        fileInput.value = '';
+        statusDiv.innerHTML = `✅ ${selectedFiles.length} फाइलें चयनित। ऊपर/नीचे से क्रम सेट करो, फिर मर्ज करो।`;
+        outputPre.textContent = "// नई फाइलें जुड़ गईं। मर्ज करें।";
+    });
+
+    clearBtn.addEventListener('click', () => {
+        selectedFiles = [];
+        renderFileList();
+        statusDiv.innerHTML = "🗑️ सभी फाइलें हटा दी गईं।";
+        outputPre.textContent = "// कोई डेटा नहीं।";
+    });
+
+    // ---------- पार्सिंग कोर (प्रति फाइल, क्रम तोड़ना मना) ----------
+    async function parseQuestionsFromFile(fileObj) {
+        const content = await fileObj.text();
+        const lines = content.split(/\r?\n/);
+        const blocks = [];
+        let currentBlock = [];
+        let inBlock = false;
+        let currentNum = null;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (/^###\s+\*{0,2}\d+\.?\*{0,2}/.test(line.trim())) {
+                if (currentBlock.length > 0) {
+                    blocks.push(parseSingleBlock(currentBlock, currentNum));
+                    currentBlock = [];
+                }
+                currentBlock.push(line);
+                const numMatch = line.match(/\d+/);
+                currentNum = numMatch ? parseInt(numMatch[0]) : null;
+                inBlock = true;
+            } else if (inBlock) {
+                currentBlock.push(line);
+            }
+        }
+        if (currentBlock.length > 0) {
+            blocks.push(parseSingleBlock(currentBlock, currentNum));
+        }
+        return blocks;
+    }
+
+    function parseSingleBlock(linesArray, defaultNum) {
+        const fullText = linesArray.join('\n');
+        // प्रश्न टेक्स्ट
+        let questionText = "";
+        const qMatch = fullText.match(/^###\s+\*{0,2}\d+\.?\*{0,2}\s+(.*?)(?=\n\(a\)|\n\*\*Ans\.)/s);
+        if (qMatch) questionText = qMatch[1].trim();
+        else {
+            const afterNum = fullText.replace(/^###\s+\*{0,2}\d+\.?\*{0,2}\s*/, '');
+            const beforeOpt = afterNum.split(/\n\(a\)/)[0];
+            questionText = beforeOpt.trim();
+        }
+
+        // ऑप्शन
+        let optA="", optB="", optC="", optD="";
+        const optPattern = /\(a\)\s+(.*?)\s+\(b\)\s+(.*?)\s+\(c\)\s+(.*?)\s+\(d\)\s+(.*?)(?=\n\*\*Ans\.|\n🏆|\n---|$)/s;
+        const optMatch = fullText.match(optPattern);
+        if (optMatch) {
+            optA = optMatch[1].trim();
+            optB = optMatch[2].trim();
+            optC = optMatch[3].trim();
+            optD = optMatch[4].trim();
+        } else {
+            const lines = fullText.split('\n');
+            for (let ln of lines) {
+                if (ln.match(/^\(a\)/)) optA = ln.replace(/^\(a\)\s*/, '').trim();
+                if (ln.match(/^\(b\)/)) optB = ln.replace(/^\(b\)\s*/, '').trim();
+                if (ln.match(/^\(c\)/)) optC = ln.replace(/^\(c\)\s*/, '').trim();
+                if (ln.match(/^\(d\)/)) optD = ln.replace(/^\(d\)\s*/, '').trim();
+            }
+        }
+
+        // उत्तर
+        let answer = "";
+        const ansMatch = fullText.match(/\*\*Ans\.\s*\(([^)]+)\)\*\*/);
+        if (ansMatch) answer = ansMatch[1].trim();
+
+        // Exam लाइन और व्याख्या
+        let examLine = "";
+        let explanation = "";
+        const examMatch = fullText.match(/🏆\s+\*\*Exam:.*$/m);
+        if (examMatch) {
+            examLine = examMatch[0].trim();
+            const afterAns = fullText.split(/\*\*Ans\.\s*\([^)]+\)\*\*/)[1];
+            if (afterAns) {
+                const beforeExam = afterAns.split(/🏆\s+\*\*Exam:/)[0];
+                explanation = beforeExam.trim();
+            }
+        } else {
+            examLine = "🏆 **Exam:** Unknown";
+            const afterAns = fullText.split(/\*\*Ans\.\s*\([^)]+\)\*\*/)[1];
+            if (afterAns) explanation = afterAns.trim();
+        }
+        explanation = explanation.replace(/^---+/gm, '').trim();
+
+        // नंबर निकालें (सिर्फ डिस्प्ले के लिए, क्रम बदलने के लिए नहीं)
+        let number = defaultNum;
+        const numFromBlock = fullText.match(/^###\s+\*{0,2}(\d+)\.?\*{0,2}/);
+        if (numFromBlock) number = parseInt(numFromBlock[1]);
+        return {
+            number: number,
+            text: questionText,
+            options: [optA, optB, optC, optD],
+            answer: answer,
+            explanation: explanation,
+            exam: examLine
+        };
+    }
+
+    // फॉर्मेटिंग (बिल्कुल document 10 जैसा)
+    function formatSingleQuestion(q) {
+        let out = [];
+        out.push(`### **${q.number}. ${q.text}**`);
+        out.push("");
+        out.push(`(a) ${q.options[0] || ""}`);
+        out.push(`(b) ${q.options[1] || ""}`);
+        out.push(`(c) ${q.options[2] || ""}`);
+        out.push(`(d) ${q.options[3] || ""}`);
+        out.push("");
+        out.push(`**Ans. (${q.answer})**`);
+        out.push("");
+        if (q.explanation && q.explanation !== "") {
+            out.push(q.explanation);
+        }
+        out.push("");
+        out.push(q.exam);
+        out.push("");
+        out.push("---");
+        out.push("---");
+        return out.join("\n");
+    }
+
+    // मुख्य मर्ज फ़ंक्शन — बिना सॉर्ट किए, बस फाइलों के क्रम में जोड़ो
+    async function mergeFilesInOrder() {
+        if (selectedFiles.length === 0) {
+            statusDiv.innerHTML = "❌ कोई फाइल नहीं चुनी। कृपया पहले फाइलें जोड़ें।";
+            return null;
+        }
+        statusDiv.innerHTML = "⏳ फाइलें पढ़ी जा रही हैं... क्रम बनाए रखा जाएगा।";
+        let allQuestions = [];
+        for (let item of selectedFiles) {
+            try {
+                const questions = await parseQuestionsFromFile(item.file);
+                // प्रश्नों को जैसे के तैसे जोड़ो (बिना किसी सॉर्टिंग के)
+                allQuestions.push(...questions);
+            } catch (err) {
+                console.error(err);
+                statusDiv.innerHTML = `⚠️ फाइल "${item.name}" में त्रुटि: ${err.message}`;
+                return null;
+            }
+        }
+        if (allQuestions.length === 0) {
+            statusDiv.innerHTML = "⚠️ किसी भी फाइल से कोई प्रश्न नहीं मिला। फॉर्मेट जाँचें।";
+            return "";
+        }
+
+        // अब प्रश्नों को उनके मूल क्रम में ही रखते हुए आउटपुट बनाएँ
+        let outputLines = [];
+        for (let i=0; i<allQuestions.length; i++) {
+            outputLines.push(formatSingleQuestion(allQuestions[i]));
+            if (i !== allQuestions.length-1) outputLines.push(""); // खाली लाइन
+        }
+        const finalText = outputLines.join("\n");
+        statusDiv.innerHTML = `✅ मर्ज पूर्ण! कुल ${allQuestions.length} प्रश्न (बिल्कुल आपके क्रम में)। अब कॉपी या डाउनलोड करें।`;
+        return finalText;
+    }
+
+    // मर्ज बटन
+    mergeBtn.addEventListener('click', async () => {
+        const merged = await mergeFilesInOrder();
+        if (merged !== null) {
+            outputPre.textContent = merged;
+            window._lastMerged = merged;
+        } else if (merged === "") {
+            outputPre.textContent = "// कोई प्रश्न नहीं मिले।";
+            window._lastMerged = "";
+        }
+    });
+
+    // कॉपी
+    copyBtn.addEventListener('click', () => {
+        const textToCopy = outputPre.textContent;
+        if (!textToCopy || textToCopy === "// मर्ज किया गया आउटपुट यहाँ दिखेगा..." || textToCopy === "// कोई प्रश्न नहीं मिले।") {
+            statusDiv.innerHTML = "⚠️ कॉपी करने के लिए पहले मर्ज करें।";
+            return;
+        }
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            statusDiv.innerHTML = "📋 आउटपुट क्लिपबोर्ड पर कॉपी हो गया!";
+        }).catch(() => {
+            statusDiv.innerHTML = "❌ कॉपी विफल, मैन्युअल कॉपी करें।";
+        });
+    });
+
+    // डाउनलोड
+    downloadBtn.addEventListener('click', () => {
+        const content = outputPre.textContent;
+        if (!content || content === "// मर्ज किया गया आउटपुट यहाँ दिखेगा..." || content === "// कोई प्रश्न नहीं मिले।") {
+            statusDiv.innerHTML = "⚠️ डाउनलोड करने के लिए पहले मर्ज करें।";
+            return;
+        }
+        const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = 'merged_ordered.txt';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        statusDiv.innerHTML = "💾 फाइल डाउनलोड शुरू (merged_ordered.txt)";
+    });
+</script>
+</body>
+</html>
